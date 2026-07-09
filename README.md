@@ -144,6 +144,18 @@ pip install 'qrid[dev]'
 pytest
 ```
 
+## Publishing
+
+Releases to PyPI are fully automated — there is no manual `twine upload` step:
+
+1. Bump `version` in `pyproject.toml` and merge to `main`.
+2. [`release.yml`](.github/workflows/release.yml) runs on every push to `main`. It reads the version from `pyproject.toml`; if no `vX.Y.Z` tag already exists for it, it runs the test suite and creates that tag plus a GitHub Release.
+3. Publishing the Release fires [`publish.yml`](.github/workflows/publish.yml), which re-runs the tests, builds the sdist/wheel, and uploads to PyPI using [Trusted Publishing (OIDC)](https://docs.pypi.org/trusted-publishers/) — no stored API token.
+
+Pushes to `main` that don't change the version are a no-op for `release.yml` (the tag already exists), so unrelated commits (docs, CI tweaks) don't trigger a release.
+
+**One-time PyPI setup** (already done for this project, documented here for reference): add a pending trusted publisher at [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/) with owner `Quality-XP-Development-SESSA`, repository `qrid-python`, workflow filename `publish.yml`, and environment name `pypi`; the same `pypi` environment must exist under the repo's GitHub Settings → Environments.
+
 ## License
 
 MIT
