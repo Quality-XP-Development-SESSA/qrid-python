@@ -150,7 +150,9 @@ Releases to PyPI are fully automated — there is no manual `twine upload` step:
 
 1. Bump `version` in `pyproject.toml` and merge to `main`.
 2. [`release.yml`](.github/workflows/release.yml) runs on every push to `main`. It reads the version from `pyproject.toml`; if no `vX.Y.Z` tag already exists for it, it runs the test suite and creates that tag plus a GitHub Release.
-3. Publishing the Release fires [`publish.yml`](.github/workflows/publish.yml), which re-runs the tests, builds the sdist/wheel, and uploads to PyPI using [Trusted Publishing (OIDC)](https://docs.pypi.org/trusted-publishers/) — no stored API token.
+3. In that same run, `release.yml` calls [`publish.yml`](.github/workflows/publish.yml) as a reusable workflow, which re-runs the tests, builds the sdist/wheel, and uploads to PyPI using [Trusted Publishing (OIDC)](https://docs.pypi.org/trusted-publishers/) — no stored API token.
+
+`publish.yml` is invoked directly as a job (`workflow_call`) rather than relying on the `release: published` event, because releases created with the Actions-internal `GITHUB_TOKEN` do not trigger other workflows via events (GitHub's anti-recursion guard). `publish.yml` still also accepts `release: published` (for a release cut by hand, e.g. from the GitHub UI) and `workflow_dispatch` (manual re-run) as a fallback.
 
 Pushes to `main` that don't change the version are a no-op for `release.yml` (the tag already exists), so unrelated commits (docs, CI tweaks) don't trigger a release.
 

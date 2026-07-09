@@ -10,6 +10,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.check_tag.outputs.exists == 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,3 +53,10 @@ jobs:
             --title "v${{ steps.version.outputs.version }}" \
             --generate-notes \
             --target "${{ github.sha }}"
+
+  publish:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    permissions:
+      id-token: write # required for PyPI trusted publishing (OIDC)
+    uses: ./.github/workflows/publish.yml
