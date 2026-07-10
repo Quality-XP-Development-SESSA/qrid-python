@@ -15,7 +15,7 @@ sequenceDiagram
     participant App as MergeID App
 
     Staff->>ERP: create invoice
-    ERP->>Lib: encode_qr_id(code, id, company, email, address)
+    ERP->>Lib: encode_qr_id(id, company, email, address, activity_code)
     Lib-->>ERP: SVG QR code
     ERP->>QR: print / embed on invoice
 
@@ -23,7 +23,7 @@ sequenceDiagram
     App->>QR: scan with camera
     QR-->>App: base64 payload string
     App->>Lib: decode_qr_id(encoded)
-    Lib-->>App: { v, code, id, company, email, address }
+    Lib-->>App: { v, id, company, email, address, activity_code }
     App-->>Staff: display verified invoice identity
 ```
 
@@ -47,12 +47,12 @@ from qrid import decode_qr_id
 # `encoded` is the raw string value scanned from a MergeID QR code
 payload = decode_qr_id(encoded)
 
-print(payload["v"])       # Payload schema version (int, currently 1)
-print(payload["code"])    # Installation / activity code  (e.g. "ACT-001")
-print(payload["id"])      # Tax or company ID              (e.g. "3101679980")
-print(payload["company"]) # Company legal name
-print(payload["email"])   # Billing e-mail address
-print(payload["address"]) # Physical address
+print(payload["v"])             # Payload schema version (int, currently 1)
+print(payload["id"])            # Tax or company ID              (e.g. "3101679980")
+print(payload["company"])       # Company legal name
+print(payload["email"])         # Billing e-mail address
+print(payload["address"])       # Physical address
+print(payload["activity_code"]) # Installation / activity code (e.g. "ACT-001"), or "" if blank
 ```
 
 `decode_qr_id` strips surrounding whitespace before decoding, so strings
@@ -85,11 +85,11 @@ except json.JSONDecodeError:
 from qrid import encode_qr_id
 
 svg = encode_qr_id(
-    code="ACT-001",
     id="3101679980",
     company="Acme Corp S.A.",
     email="billing@acme.example",
     address="123 Main St, San José, Costa Rica",
+    activity_code="ACT-001",
 )
 
 # Write to a file
@@ -99,6 +99,9 @@ with open("invoice_qr.svg", "w") as f:
 # Or serve directly
 # Content-Type: image/svg+xml
 ```
+
+`activity_code` is optional and defaults to `""` (blank). A blank activity code signals a
+consuming system to generate an electronic ticket instead of using an activity code.
 
 **Exceptions raised:**
 
@@ -113,22 +116,22 @@ The QR code data is a UTF-8 JSON object encoded as standard base64 (no line-brea
 ```json
 {
   "v": 1,
-  "code": "ACT-001",
   "id": "3101679980",
   "company": "Acme Corp S.A.",
   "email": "billing@acme.example",
-  "address": "123 Main St, San José, Costa Rica"
+  "address": "123 Main St, San José, Costa Rica",
+  "activity_code": "ACT-001"
 }
 ```
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `v` | `int` | Payload schema version. Currently always `1`. |
-| `code` | `str` | Installation or activity code that links the QR to an internal record. |
 | `id` | `str` | Tax / company registration ID. |
 | `company` | `str` | Legal company name (UTF-8, including accented characters). |
 | `email` | `str` | Primary billing or contact e-mail address. |
 | `address` | `str` | Physical address of the company. |
+| `activity_code` | `str` | Installation or activity code that links the QR to an internal record. May be blank (`""`), which signals a consuming system to generate an electronic ticket instead. |
 
 ## Requirements
 

@@ -17,11 +17,11 @@ def encode(payload: dict) -> str:
 def sample_payload(**overrides) -> QRIdPayload:
     p: QRIdPayload = {
         "v": 1,
-        "code": "ACT-001",
         "id": "3101679980",
         "company": "Acme Corp S.A.",
         "email": "billing@acme.example",
         "address": "123 Main St, San José, Costa Rica",
+        "activity_code": "ACT-001",
     }
     p.update(overrides)  # type: ignore[typeddict-item]
     return p
@@ -34,7 +34,7 @@ class TestDecodeQRId:
         result = decode_qr_id(encode(sample_payload()))
 
         assert result["v"] == 1
-        assert result["code"] == "ACT-001"
+        assert result["activity_code"] == "ACT-001"
         assert result["id"] == "3101679980"
         assert result["company"] == "Acme Corp S.A."
         assert result["email"] == "billing@acme.example"
@@ -53,7 +53,7 @@ class TestDecodeQRId:
 
     def test_trims_surrounding_whitespace(self):
         result = decode_qr_id("  " + encode(sample_payload()) + "  ")
-        assert result["code"] == "ACT-001"
+        assert result["activity_code"] == "ACT-001"
 
     def test_raises_value_error_on_invalid_base64(self):
         with pytest.raises(ValueError, match="Invalid base64 input"):
@@ -69,7 +69,18 @@ class TestDecodeQRId:
 class TestEncodeQRId:
     def test_returns_svg_string(self):
         svg = encode_qr_id(
-            code="ACT-001",
+            id="3101679980",
+            company="Acme Corp S.A.",
+            email="billing@acme.example",
+            address="123 Main St",
+            activity_code="ACT-001",
+        )
+
+        assert isinstance(svg, str)
+        assert "<svg" in svg.lower()
+
+    def test_defaults_activity_code_to_blank(self):
+        svg = encode_qr_id(
             id="3101679980",
             company="Acme Corp S.A.",
             email="billing@acme.example",
@@ -87,6 +98,16 @@ class TestEncodeQRId:
 
         decoded = decode_qr_id(encoded)
 
-        assert decoded["code"] == p["code"]
+        assert decoded["activity_code"] == p["activity_code"]
         assert decoded["id"] == p["id"]
         assert decoded["company"] == p["company"]
+
+    def test_round_trip_blank_activity_code(self):
+        p = sample_payload(activity_code="")
+        encoded = base64.b64encode(
+            json.dumps(p, ensure_ascii=False).encode("utf-8")
+        ).decode()
+
+        decoded = decode_qr_id(encoded)
+
+        assert decoded["activity_code"] == ""

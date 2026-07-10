@@ -7,11 +7,11 @@ from typing import TypedDict
 
 class QRIdPayload(TypedDict):
     v: int
-    code: str
     id: str
     company: str
     email: str
     address: str
+    activity_code: str
 
 
 def decode_qr_id(encoded: str) -> QRIdPayload:
@@ -23,7 +23,7 @@ def decode_qr_id(encoded: str) -> QRIdPayload:
         encoded: The base64 string read from a MergeID QR code.
 
     Returns:
-        A TypedDict with keys: v, code, id, company, email, address.
+        A TypedDict with keys: v, id, company, email, address, activity_code.
 
     Raises:
         ValueError: When the base64 input is malformed.
@@ -40,11 +40,11 @@ def decode_qr_id(encoded: str) -> QRIdPayload:
 
 
 def encode_qr_id(
-    code: str,
     id: str,
     company: str,
     email: str,
     address: str,
+    activity_code: str = "",
 ) -> str:
     """Encode invoice identity fields and return an SVG QR code string.
 
@@ -52,11 +52,13 @@ def encode_qr_id(
     Requires the encode extra: pip install 'qrid[encode]'
 
     Args:
-        code:    Installation or activity code.
-        id:      Tax / company registration ID.
-        company: Company legal name (UTF-8).
-        email:   Primary billing or contact e-mail address.
-        address: Physical address of the company.
+        id:            Tax / company registration ID.
+        company:       Company legal name (UTF-8).
+        email:         Primary billing or contact e-mail address.
+        address:       Physical address of the company.
+        activity_code: Installation or activity code. May be blank, which
+            signals a consuming system to generate an electronic ticket
+            instead.
 
     Returns:
         An SVG markup string containing the generated QR code.
@@ -74,11 +76,11 @@ def encode_qr_id(
 
     payload: QRIdPayload = {
         "v": 1,
-        "code": code,
         "id": id,
         "company": company,
         "email": email,
         "address": address,
+        "activity_code": activity_code,
     }
     encoded = base64.b64encode(
         json.dumps(payload, ensure_ascii=False).encode("utf-8")
